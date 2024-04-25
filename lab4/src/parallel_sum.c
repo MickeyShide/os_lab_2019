@@ -10,9 +10,19 @@ struct SumArgs {
   int end;
 };
 
+void GenerateArray(int *array, unsigned int array_size, unsigned int seed) {
+  srand(seed);
+  for (int i = 0; i < array_size; i++) {
+    array[i] = rand();
+  }
+}
+
+
 int Sum(const struct SumArgs *args) {
   int sum = 0;
-  // TODO: your code here 
+    for (int i = args->begin; i < args->end; i++) {
+      sum += args->array[i];
+    }
   return sum;
 }
 
@@ -22,16 +32,11 @@ void *ThreadSum(void *args) {
 }
 
 int main(int argc, char **argv) {
-  /*
-   *  TODO:
-   *  threads_num by command line arguments
-   *  array_size by command line arguments
-   *	seed by command line arguments
-   */
+  // --threads_num <num> --seed <num> --array_size <num>
 
-  uint32_t threads_num = 0;
-  uint32_t array_size = 0;
-  uint32_t seed = 0;
+  uint32_t threads_num = atoi(argv[2]);
+  uint32_t array_size = atoi(argv[6]);
+  uint32_t seed = atoi(argv[4]);
   pthread_t threads[threads_num];
 
   /*
@@ -41,10 +46,15 @@ int main(int argc, char **argv) {
    */
 
   int *array = malloc(sizeof(int) * array_size);
+  GenerateArray(array, array_size, seed);
 
   struct SumArgs args[threads_num];
   for (uint32_t i = 0; i < threads_num; i++) {
-    if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args)) {
+    args[i].array = array;
+    args[i].begin = i * (array_size / threads_num);
+    args[i].end = (i == threads_num - 1) ? array_size : (i + 1) * (array_size / threads_num);
+        
+    if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args[i])) {
       printf("Error: pthread_create failed!\n");
       return 1;
     }
