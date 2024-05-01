@@ -13,21 +13,6 @@
 
 #include "pthread.h"
 
-pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
-
-uint64_t MultModulo(uint64_t a, uint64_t b, uint64_t mod) {
-  uint64_t result = 0;
-  a = a % mod;
-  while (b > 0) {
-    if (b % 2 == 1)
-      result = (result + a) % mod;
-    a = (a * 2) % mod;
-    b /= 2;
-  }
-
-  return result % mod;
-}
-
 struct FactorialArgs {
   uint64_t begin;
   uint64_t end;
@@ -48,13 +33,15 @@ uint64_t MultModulo(uint64_t a, uint64_t b, uint64_t mod) {
 }
 
 uint64_t Factorial(const struct FactorialArgs *args) {
+  // TODO: your code here
   uint64_t ans = 1;
 
-  for (uint64_t i = args->begin; i <= args->end; i++)
+   for(uint64_t i = args->end; i > args->begin; i--) 
   {
-    ans *= i % args->mod;
+    ans *= i;
+    ans %= args->mod;
   }
-  ans %= args->mod;
+
   return ans;
 }
 
@@ -85,19 +72,13 @@ int main(int argc, char **argv) {
       switch (option_index) {
       case 0:
         port = atoi(optarg);
-        if (port <=0)
-        {
-          printf("port is a positive number\n");
-          return 1;
-        }
+        // TODO: your code here
+        if (port < 0) port = -1;
         break;
       case 1:
         tnum = atoi(optarg);
-        if (tnum <=0)
-        {
-          printf("tnum is a positive number\n");
-          return 1;
-        }
+        // TODO: your code here
+        if (tnum < 0) tnum = -1;
         break;
       default:
         printf("Index %d is out of options\n", option_index);
@@ -183,12 +164,13 @@ int main(int argc, char **argv) {
       fprintf(stdout, "Receive: %llu %llu %llu\n", begin, end, mod);
 
       struct FactorialArgs args[tnum];
-      uint64_t segments = (end-begin+1)/tnum;
       for (uint32_t i = 0; i < tnum; i++) {
-        // parallelim
-        args[i].begin = begin + i * segments;
-        args[i].end = ((i != tnum - 1) ? begin + (i + 1) * segments : end);
+        // TODO: parallel somehow
+        args[i].begin = begin + i*(end-begin)/tnum;
+        args[i].end = begin + (i+1)*(end-begin)/tnum;
         args[i].mod = mod;
+
+        if (i == tnum-1) args[i].end = end;
 
         if (pthread_create(&threads[i], NULL, ThreadFactorial,
                            (void *)&args[i])) {
@@ -198,13 +180,10 @@ int main(int argc, char **argv) {
       }
 
       uint64_t total = 1;
-      for (uint32_t i = 0; i < tnum; i++)
-      {
-        pthread_mutex_lock(&mut);
+      for (uint32_t i = 0; i < tnum; i++) {
         uint64_t result = 0;
         pthread_join(threads[i], (void **)&result);
-        total =  multModulo(total, result, mod);
-        pthread_mutex_unlock(&mut);
+        total = MultModulo(total, result, mod);
       }
 
       printf("Total: %llu\n", total);
